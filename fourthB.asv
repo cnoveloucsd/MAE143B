@@ -1,0 +1,32 @@
+clear; clc;
+
+Ts = 0.001; %h samplin tim
+wg = 10;   
+
+% 1.transfer functions (without K)
+D_lead = tf([1, 2.6795], [1, 37.3205]);
+D_lag = tf([1, 0.4852], [1, 0.04852]);
+D_double_lag = series(D_lag, D_lag);
+
+num_cheb = [0.001, 0, 7668, 0, 7.35e09];
+den_cheb = [1, 758.2, 2.874e05, 6.413e07, 7.35e09];
+D_lpf = tf(num_cheb, den_cheb);
+
+% Combine
+D_s = series(series(D_lead, D_double_lag), D_lpf);
+
+% 2. discrete time using Tustin 
+opts = c2dOptions('Method', 'tustin', 'PrewarpFrequency', wg);
+D_z = c2d(D_s, Ts, opts);
+
+[b, a] = tfdata(D_z, 'v');
+
+% Normalize so the leading a-coefficient is 1 
+b = b / a(1);
+a = a / a(1);
+
+fprintf('Denominator coefficients (a_0 to a_n):\n');
+disp(vpa(a, 4));
+
+fprintf('Numerator coefficients (b_0 to b_n):\n');
+disp(vpa(b, 4));
